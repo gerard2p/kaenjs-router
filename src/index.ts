@@ -91,8 +91,8 @@ class Route {
         return this.callback;
     }
 }
+const Middleware:Map<string,Map<HTTPVerbs, Array<Route>>> = new Map();
 export class Router {
-	protected static middleware:Map<string,Map<HTTPVerbs, Array<Route>>> = new Map();
 	protected subdomain:string;
     constructor(subdomain?:string) {
 		this.subdomain=subdomain || process.env.KAEN_INTERNAL_SUBDOMAIN;
@@ -102,10 +102,10 @@ export class Router {
 		if (!configuration.server.subdomains.includes(router.subdomain)) {
 			configuration.server.subdomains.push(router.subdomain);
 		}
-		if ( !Router.middleware.has(router.subdomain) ) {
-			Router.middleware.set(router.subdomain, new Map());
+		if ( !Middleware.has(router.subdomain) ) {
+			Middleware.set(router.subdomain, new Map());
 		}
-		subdomain_stack = Router.middleware.get(router.subdomain);
+		subdomain_stack = Middleware.get(router.subdomain);
 		let method_stack;
         for(const method of methods) {
 			if(!subdomain_stack.has(method)) {
@@ -172,12 +172,12 @@ export class Router {
 		Router.matchConditions.push(fn);
 	}
 	static get subdomains () {
-		return Array.from(Router.middleware.keys());
+		return Array.from(Middleware.keys());
 	}
 	private static matchConditions = [];
     static async execute(context: KaenContext) {
 		// let anytime = getTimeMSFloat();
-		const middleware = Router.middleware.get(context.subdomain);
+		const middleware = Middleware.get(context.subdomain);
 		if(!middleware)return;
 		let routes = middleware.get(context.req.method as HTTPVerbs) || [];
 		for(const route of routes){
