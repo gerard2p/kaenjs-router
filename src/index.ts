@@ -39,4 +39,4 @@ RegisterHook(()=>{
 		}
 	}
 });
-export {CORS, ROUTE, AllowCredentials} from './decorator';
+export {CORS, ROUTE, AllowCredentials, Register, AllowHeaders} from './decorator';

@@ -5,6 +5,7 @@ export interface MethodMetadata {
   method?: HTTPVerbs;
   route?: string;
   cors?:string;
+  cors_headers?:string[];
 }
 export const RESTVerbs = [
   HTTPVerbs.get,
@@ -74,3 +75,9 @@ export function Register(subdomain:string) {
 		return model;
 	}
 }
+
+export function AllowHeaders(headers:string[]) {
+    return function(target: any, key: string, descriptor: PropertyDescriptor) {
+      setMetadata(target[key], { cors_headers: headers});
+    };
+  }

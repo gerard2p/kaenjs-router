@@ -16,13 +16,11 @@ function validateCORS(ctx:KaenContext, cors:string[]) {
 	return match ? ctx.headers[StandardRequestHeaders.Origin] : undefined;
 
 }
-let CORS_MW:Middleware=undefined;
 function AllowCors(cors: string) {
     return async function CORS(ctx:KaenContext) {
         let COR = validateCORS(ctx, cors.split(',').map(c=>c.trim()));
         ctx.headers[StandardResponseHeaders.AccessControlAllowOrigin] = COR;
     };
-	return CORS_MW;
 }
 function AllowCredentials() {
     return async function AllowCredentials(ctx:KaenContext) {
@@ -32,7 +30,9 @@ function AllowCredentials() {
 function buildOptionRequest(middleware: Middleware, subdomain: string, route: string) {
     let middleware_stack:Middleware[] = [];
     let new_middleware_stack:Middleware[] = [];
-    let { cors, allowcredentials } = getMetadata(middleware);
+    let { cors, allowcredentials, cors_headers=[] } = getMetadata(middleware);
+    cors_headers = cors_headers.map(ch=>ch.toLocaleLowerCase());
+    if(!cors_headers.includes('content-type'))cors_headers.push('content-type');
     if (cors || allowcredentials) {
         middleware_stack.push(AllowCors(cors));
         new_middleware_stack.push(AllowCors(cors));
@@ -43,7 +43,7 @@ function buildOptionRequest(middleware: Middleware, subdomain: string, route: st
     }
     if(middleware_stack.length) {
         middleware_stack.push(async ctx=>{
-            ctx.headers[StandardResponseHeaders.AccessControlAllowHeaders] = 'content-type';
+            ctx.headers[StandardResponseHeaders.AccessControlAllowHeaders] = cors_headers.join(',');
             ctx.status = 200;
             ctx.finished = true;
         });
@@ -78,8 +78,6 @@ export function RegisterRoute(subdomain:string, methods:HTTPVerbs[], route: stri
     }
     drouter(`${grey('[')}${yellow(methods.join(', '))}${grey(']')}\t${cyan(subdomain)}.${grey(host)}${cyan(route)}`);
 }
-
-
 
 export function RegisterHook(fn:()=>void) {
     RouteHooks.push(fn);
