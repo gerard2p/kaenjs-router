@@ -3,6 +3,7 @@
   "version": "0.0.0",
   "description": "Router Middleware for KaenJS",
   "main": "index.js",
+  "typings": "index.d.ts",
   "scripts": {
     "test": "npm test"
   },
@@ -31,5 +32,8 @@
     "package.json",
     "**/*.d.ts"
   ],
-  "readme": "README.md"
+  "readme": "README.md",
+  "dependencies": {
+    "reflect-metadata": "^0.1.13"
+  }
 }
