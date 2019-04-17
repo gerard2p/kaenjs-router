@@ -14,15 +14,16 @@ export function Routes() {
 	return RouterMiddleware;
 }
 
-export function Subdomains () {
+export function Subdomains (def?:string) {
 	return async function subdomains(ctx:KaenContext) {
 		for (const subdomain of Router.subdomains) {
 			if (ctx.domain.includes(`${subdomain}.`)) {
 				ctx.domain = ctx.domain.replace(`${subdomain}.`, '');
-				ctx.subdomain = subdomain;
+				ctx.subdomain = subdomain || def;
 				break;
 			}
 		}
+		ctx.subdomain = ctx.subdomain || def;
 	}
 }
 export {Router, RouterModel};
