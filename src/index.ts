@@ -36,7 +36,7 @@ RegisterHook(()=>{
 		for(const method_name of RouterModel.getAllMethos(m) ) {
 			const {method=HTTPVerbs.post, route=posix.join('/', method_name,m.addTrailingSlash?'/':'')}  = Reflect.getMetadata('kaen:router',m[method_name]) || {};
 			setMetadata(m[method_name], {cors: m.CORS});
-			RegisterRoute(m.Subdomain, [method], route, [m[method_name] as any], );
+			RegisterRoute(m.Subdomain, [method], route, [m[method_name] as any],undefined, m );
 		}
 	}
 });

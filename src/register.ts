@@ -51,7 +51,7 @@ function buildOptionRequest(middleware: Middleware, subdomain: string, route: st
     }
     return new_middleware_stack;
 }
-export function RegisterRoute(subdomain:string, methods:HTTPVerbs[], route: string , stack_middleware:Middleware[], options?: RouterOptions) {
+export function RegisterRoute(subdomain:string, methods:HTTPVerbs[], route: string , stack_middleware:Middleware[], options?: RouterOptions, thisContext?:any) {
     let subdomain_stack:Map<HTTPVerbs, Array<Route>>;
     if (!configuration.server.subdomains.includes(subdomain)) {
         configuration.server.subdomains.push(subdomain);
@@ -70,9 +70,9 @@ export function RegisterRoute(subdomain:string, methods:HTTPVerbs[], route: stri
             if(!middleware)continue;
             let appendMiddleware = buildOptionRequest(middleware, subdomain, route);
             for(const middlew of appendMiddleware) {
-                method_stack.push(new Route(route, middlew, options));
+                method_stack.push(new Route(route, middlew.bind(thisContext), options));
             }
-            method_stack.push(new Route(route, middleware, options));
+            method_stack.push(new Route(route, middleware.bind(thisContext), options));
             
         }
     }
