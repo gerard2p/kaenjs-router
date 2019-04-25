@@ -1,12 +1,5 @@
 import { HTTPVerbs } from '@kaenjs/core';
-import 'reflect-metadata';
-export interface MethodMetadata {
-  allowcredentials?: boolean;
-  method?: HTTPVerbs;
-  route?: string;
-  cors?:string;
-  cors_headers?:string[];
-}
+import { setMetadata } from './metadata';
 export const RESTVerbs = [
   HTTPVerbs.get,
   HTTPVerbs.post,
@@ -15,14 +8,7 @@ export const RESTVerbs = [
   HTTPVerbs.delete
 ];
 export type DATABASEMODEL = { new (...args: any[]): {} };
-export function getMetadata(target: any): MethodMetadata {
-  return Reflect.getMetadata('kaen:router', target) || {};
-}
-export function setMetadata(target: any, metadata: MethodMetadata) {
-  let old = getMetadata(target);
-  let new_settings = Object.assign({}, metadata, old);
-  Reflect.defineMetadata('kaen:router', new_settings, target);
-}
+
 export function ROUTE(method: HTTPVerbs = HTTPVerbs.post, route?: string) {
   return function(target: any, key: string, descriptor: PropertyDescriptor) {
     setMetadata(target[key], { method, route });
@@ -30,7 +16,7 @@ export function ROUTE(method: HTTPVerbs = HTTPVerbs.post, route?: string) {
 }
 export function AllowCredentials() {
   return function(target: any, key: string, descriptor: PropertyDescriptor) {
-    setMetadata(target[key], { allowcredentials: true });
+    setMetadata(target[key], { access_control_allow:{credentials: true }});
   };
 }
 type ClassDecorator = <T extends DATABASEMODEL>(constructor: T) =>  T;
@@ -57,7 +43,10 @@ export function CORS(origin: string):MethodDecorator|any
     //   };
     } else if(args.length === 3) {
         const [target, key] = args;
-        setMetadata(target[key], {cors:origin});
+        setMetadata(target[key], {access_control_allow:{
+          origin,
+          methods:true
+        }});
     }
   };
 }
@@ -78,6 +67,9 @@ export function Register(subdomain:string) {
 
 export function AllowHeaders(headers:string[]) {
     return function(target: any, key: string, descriptor: PropertyDescriptor) {
-      setMetadata(target[key], { cors_headers: headers});
+      setMetadata(target[key], { access_control_allow: {headers}});
     };
   }
+export function Ignore(target: any, key: string, descriptor: PropertyDescriptor) {
+  setMetadata(target[key], { ignore:true});
+};

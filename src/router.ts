@@ -2,6 +2,8 @@ import { HTTPVerbs, KaenContext, Middleware } from "@kaenjs/core";
 import { posix } from "path";
 import { MiddlewareStack, RouterOptions, Route, MatchConditions, RouteHooks } from "./internals";
 import { RegisterRoute } from "./register";
+import { getMetadata, setMetadata } from "./metadata";
+import 'reflect-metadata';
 
 type middlewareWS = (context:WSContext, ...args:any[]) => void;
 
@@ -145,19 +147,26 @@ type FunctionProperties<T> = Pick<T, FunctionPropertyNames<T>>;
  * Use this class with decorator so you can create a Model like router
  */
 export class RouterModel {
-	[key:string]: Middleware | string | boolean
 	Subdomain:string = 'www'
 	CORS:string
 	addTrailingSlash:boolean = true
+	static setup(m:RouterModel) {
+		for(const method_name of RouterModel.getAllMethos(m) ) {
+			const {method=HTTPVerbs.post, route=posix.join('/', method_name,m.addTrailingSlash?'/':'')}  = Reflect.getMetadata('kaen:router',m[method_name]) || {};
+			setMetadata(m[method_name], { access_control_allow:{origin: m.CORS}});
+			RegisterRoute(m.Subdomain, [method], route, [m[method_name] as any],undefined, m );
+		}
+	}
     static getAllMethos(target:RouterModel) {
         let Methods:string[] = [];
         do{
-			let nMethods = Object.getOwnPropertyNames(target).sort().filter(p=>
-				p!=='constructor' && 
+			let nMethods = Object.getOwnPropertyNames(target).filter(p=>typeof target[p] === 'function').sort().filter(p=>{
+				return p!=='constructor' && 
 				Methods.indexOf(p)===-1 && 
-				typeof target[p] === 'function');
-            Methods = Methods.concat(nMethods);
-        }while((target = Object.getPrototypeOf(target)) && Object.getPrototypeOf(target));
+				!getMetadata(target[p]).ignore;
+			});
+			Methods = Methods.concat(nMethods);
+		}while((target = Object.getPrototypeOf(target)) && Object.getPrototypeOf(target));
         return Methods;
     }
 }

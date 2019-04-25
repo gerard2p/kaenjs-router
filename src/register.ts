@@ -4,7 +4,8 @@ import { cyan, grey, yellow } from "@kaenjs/core/c";
 import { debug } from '@kaenjs/core/debug';
 import { MiddlewareStack, Route, RouterOptions, RouteHooks, MatchConditions } from "./internals";
 import { StandardRequestHeaders, StandardResponseHeaders } from "@kaenjs/core/headers";
-import { getMetadata } from "./decorator";
+import { getMetadata } from "./metadata";
+import { isDate } from "util";
 
 
 
@@ -16,8 +17,8 @@ function validateCORS(ctx:KaenContext, cors:string[]) {
 	return match ? ctx.headers[StandardRequestHeaders.Origin] : undefined;
 
 }
-function AllowCors(cors: string) {
-    return async function CORS(ctx:KaenContext) {
+function AllowOrigin(cors: string) {
+    return async function AllowOrigin(ctx:KaenContext) {
         let COR = validateCORS(ctx, cors.split(',').map(c=>c.trim()));
         ctx.headers[StandardResponseHeaders.AccessControlAllowOrigin] = COR;
     };
@@ -27,25 +28,38 @@ function AllowCredentials() {
         ctx.headers[StandardResponseHeaders.AccessControlAllowCredentials] = 'true';
     };
 }
-function buildOptionRequest(middleware: Middleware, subdomain: string, route: string) {
+function AllowMethods(method:string) {
+	return async function AllowMethods(ctx:KaenContext) {
+		let requested = ctx.headers[StandardRequestHeaders.AccessControlRequestMethod] || '';
+		if(method.toLocaleLowerCase() === requested.toLocaleLowerCase())
+			ctx.headers[StandardResponseHeaders.AccessControlAllowMethods] = ctx.headers[StandardRequestHeaders.AccessControlRequestMethod];
+	}
+}
+function buildCORSRequest(middleware: Middleware, subdomain: string, route: string, method:string) {
     let middleware_stack:Middleware[] = [];
     let new_middleware_stack:Middleware[] = [];
-    let { cors, allowcredentials, cors_headers=[] } = getMetadata(middleware);
-    cors_headers = cors_headers.map(ch=>ch.toLocaleLowerCase());
-    if(!cors_headers.includes('content-type'))cors_headers.push('content-type');
-    if (cors || allowcredentials) {
-        middleware_stack.push(AllowCors(cors));
-        new_middleware_stack.push(AllowCors(cors));
+    let { access_control_allow={headers:[]} } = getMetadata(middleware);
+    if (access_control_allow.origin) {
+        middleware_stack.push(AllowOrigin(access_control_allow.origin));
+        new_middleware_stack.push(AllowOrigin(access_control_allow.origin));
     }
-    if(allowcredentials) {
+    if(access_control_allow.credentials) {
         middleware_stack.push(AllowCredentials());
         new_middleware_stack.push(AllowCredentials());
     }
+    if(access_control_allow.methods) {
+        middleware_stack.push(AllowMethods(method));
+    }
     if(middleware_stack.length) {
+		let cors_headers = (access_control_allow.headers||[]).map(ch=>ch.toLocaleLowerCase());
+    	if(!cors_headers.includes('content-type'))cors_headers.push('content-type');
         middleware_stack.push(async ctx=>{
-            ctx.headers[StandardResponseHeaders.AccessControlAllowHeaders] = cors_headers.join(',');
-            ctx.status = 200;
-            ctx.finished = true;
+			let requested = ctx.headers[StandardRequestHeaders.AccessControlRequestMethod] || '';
+			if(method.toLocaleLowerCase() === requested.toLocaleLowerCase()) {
+				ctx.headers[StandardResponseHeaders.AccessControlAllowHeaders] = cors_headers.join(',');
+				ctx.status = 200;
+				ctx.finished = true;
+			}
         });
         RegisterRoute(subdomain, [HTTPVerbs.options], route, middleware_stack);
     }
@@ -68,7 +82,7 @@ export function RegisterRoute(subdomain:string, methods:HTTPVerbs[], route: stri
         method_stack = subdomain_stack.get(method);
         for(const middleware of stack_middleware) {
             if(!middleware)continue;
-            let appendMiddleware = buildOptionRequest(middleware, subdomain, route);
+            let appendMiddleware = buildCORSRequest(middleware, subdomain, route, method);
             for(const middlew of appendMiddleware) {
                 method_stack.push(new Route(route, middlew.bind(thisContext), options));
             }

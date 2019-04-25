@@ -1,12 +1,13 @@
-import { Router, RouterModel } from "./router";
-import { RouterMiddleware } from "./middleware";
-import { KaenContext, HTTPVerbs } from "@kaenjs/core";
+import { KaenContext } from "@kaenjs/core";
+import { STORAGEHOOK } from "./decorator";
 import { RouteHooks } from "./internals";
-import { RegisterHook, RegisterRoute } from "./register";
-import { STORAGEHOOK, setMetadata } from "./decorator";
-import { StandardResponseHeaders, StandardRequestHeaders } from "@kaenjs/core/headers";
-import { posix } from "path";
+import { RouterMiddleware } from "./middleware";
+import { RegisterHook } from "./register";
+import { Router, RouterModel } from "./router";
+export * from './decorator';
+export { AllowCredentials, AllowHeaders, CORS, Register, ROUTE } from './decorator';
 export { RouterOptions } from "./internals";
+export { Router, RouterModel };
 export function Routes() {
 	for(const hook of RouteHooks) {
 		hook();
@@ -26,18 +27,12 @@ export function Subdomains (def?:string) {
 		ctx.subdomain = ctx.subdomain || def;
 	}
 }
-export {Router, RouterModel};
 
 RegisterHook(()=>{
 	for(let hook of Array.from(STORAGEHOOK.keys()) ) {
 		//@ts-ignore
 		let m:RouterModel = new hook();
-		const MainRouter = new Router(m.Subdomain);
-		for(const method_name of RouterModel.getAllMethos(m) ) {
-			const {method=HTTPVerbs.post, route=posix.join('/', method_name,m.addTrailingSlash?'/':'')}  = Reflect.getMetadata('kaen:router',m[method_name]) || {};
-			setMetadata(m[method_name], {cors: m.CORS});
-			RegisterRoute(m.Subdomain, [method], route, [m[method_name] as any],undefined, m );
-		}
+		//@ts-ignore
+		hook.setup(m);
 	}
 });
-export {CORS, ROUTE, AllowCredentials, Register, AllowHeaders} from './decorator';

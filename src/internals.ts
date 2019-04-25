@@ -9,7 +9,6 @@ export const MiddlewareStack:Map<string,Map<HTTPVerbs, Array<Route>>> = new Map(
 export const MatchConditions:((r:Route, c:KaenContext)=>boolean)[] = [];
 export const RouteHooks:(()=>void)[] = [];
 export class Route {
-    private method:HTTPVerbs
     private parts:Array<string>
     public route: RegExp
 	private callback:Middleware
