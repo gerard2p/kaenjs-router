@@ -2,13 +2,9 @@ import { HTTPVerbs, KaenContext, Middleware } from "@kaenjs/core";
 import { posix } from "path";
 import { MiddlewareStack, RouterOptions, Route, MatchConditions, RouteHooks } from "./internals";
 import { RegisterRoute } from "./register";
-import { getMetadata, setMetadata } from "./metadata";
-import 'reflect-metadata';
-
+import { getMetadata, setMetadata, CORS } from "./metadata";
 type middlewareWS = (context:WSContext, ...args:any[]) => void;
-
 const RESTVerbs = [HTTPVerbs.get, HTTPVerbs.post, HTTPVerbs.put, HTTPVerbs.patch, HTTPVerbs.delete];
-
 function RouterStackMethod(target:Router, key:string, descriptor:PropertyDescriptor) {
     if(descriptor === undefined) {
       descriptor = Object.getOwnPropertyDescriptor(target, key);
@@ -148,12 +144,12 @@ type FunctionProperties<T> = Pick<T, FunctionPropertyNames<T>>;
  */
 export class RouterModel {
 	Subdomain:string = 'www'
-	CORS:string
+	CORS:CORS = {}
 	addTrailingSlash:boolean = true
 	static setup(m:RouterModel) {
 		for(const method_name of RouterModel.getAllMethos(m) ) {
-			const {method=HTTPVerbs.post, route=posix.join('/', method_name,m.addTrailingSlash?'/':'')}  = Reflect.getMetadata('kaen:router',m[method_name]) || {};
-			setMetadata(m[method_name], { access_control_allow:{origin: m.CORS}});
+			const {method=HTTPVerbs.post, route=posix.join('/', method_name,m.addTrailingSlash?'/':'')}  = getMetadata(m[method_name]);
+			setMetadata(m[method_name], { access_control_allow:m.CORS});
 			RegisterRoute(m.Subdomain, [method], route, [m[method_name] as any],undefined, m );
 		}
 	}

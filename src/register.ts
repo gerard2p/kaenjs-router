@@ -1,13 +1,10 @@
-import { HTTPVerbs, Middleware, KaenContext } from "@kaenjs/core";
-import { configuration } from "@kaenjs/core/configuration";
+import { HTTPVerbs, KaenContext, Middleware } from "@kaenjs/core";
 import { cyan, grey, yellow } from "@kaenjs/core/c";
+import { configuration } from "@kaenjs/core/configuration";
 import { debug } from '@kaenjs/core/debug';
-import { MiddlewareStack, Route, RouterOptions, RouteHooks, MatchConditions } from "./internals";
 import { StandardRequestHeaders, StandardResponseHeaders } from "@kaenjs/core/headers";
+import { MatchConditions, MiddlewareStack, Route, RouteHooks, RouterOptions } from "./internals";
 import { getMetadata } from "./metadata";
-import { isDate } from "util";
-
-
 
 const drouter = debug('router');
 const {server:{host}} = configuration;
@@ -30,9 +27,7 @@ function AllowCredentials() {
 }
 function AllowMethods(method:string) {
 	return async function AllowMethods(ctx:KaenContext) {
-		let requested = ctx.headers[StandardRequestHeaders.AccessControlRequestMethod] || '';
-		if(method.toLocaleLowerCase() === requested.toLocaleLowerCase())
-			ctx.headers[StandardResponseHeaders.AccessControlAllowMethods] = ctx.headers[StandardRequestHeaders.AccessControlRequestMethod];
+        ctx.headers[StandardResponseHeaders.AccessControlAllowMethods] = ctx.headers[StandardRequestHeaders.AccessControlRequestMethod];
 	}
 }
 function buildCORSRequest(middleware: Middleware, subdomain: string, route: string, method:string) {
@@ -54,12 +49,10 @@ function buildCORSRequest(middleware: Middleware, subdomain: string, route: stri
 		let cors_headers = (access_control_allow.headers||[]).map(ch=>ch.toLocaleLowerCase());
     	if(!cors_headers.includes('content-type'))cors_headers.push('content-type');
         middleware_stack.push(async ctx=>{
-			let requested = ctx.headers[StandardRequestHeaders.AccessControlRequestMethod] || '';
-			if(method.toLocaleLowerCase() === requested.toLocaleLowerCase()) {
-				ctx.headers[StandardResponseHeaders.AccessControlAllowHeaders] = cors_headers.join(',');
-				ctx.status = 200;
-				ctx.finished = true;
-			}
+            ctx.headers[StandardResponseHeaders.AccessControlAllowHeaders] = cors_headers.join(',');
+            ctx.status = 200;
+            if(method.toLocaleLowerCase() === 'options')
+                ctx.finished = true;
         });
         RegisterRoute(subdomain, [HTTPVerbs.options], route, middleware_stack);
     }
