@@ -9,7 +9,7 @@ import { getMetadata } from "./metadata";
 const drouter = debug('router');
 const {server:{host}} = configuration;
 function validateCORS(ctx:KaenContext, cors:string[]) {
-	let request = ctx.headers[StandardRequestHeaders.Origin];
+	let request = ctx.headers[StandardRequestHeaders.Origin] || '';
 	let match = cors.includes('*') || cors.some(origin=>request.includes(origin));
 	return match ? ctx.headers[StandardRequestHeaders.Origin] : undefined;
 
@@ -17,7 +17,13 @@ function validateCORS(ctx:KaenContext, cors:string[]) {
 function AllowOrigin(cors: string) {
     return async function AllowOrigin(ctx:KaenContext) {
         let COR = validateCORS(ctx, cors.split(',').map(c=>c.trim()));
-        ctx.headers[StandardResponseHeaders.AccessControlAllowOrigin] = COR;
+        if(!COR) {
+            ctx.status = 418;
+            ctx.finished = true;
+        } else {
+            ctx.headers[StandardResponseHeaders.AccessControlAllowOrigin] = COR;
+        }
+        
     };
 }
 function AllowCredentials() {
