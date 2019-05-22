@@ -51,7 +51,7 @@ function buildCORSRequest(middleware: Middleware, subdomain: string, route: stri
     if(access_control_allow.methods) {
         middleware_stack.push(AllowMethods(method));
     }
-    if(middleware_stack.length) {
+    if(access_control_allow.origin && middleware_stack.length) {
 		let cors_headers = (access_control_allow.headers||[]).map(ch=>ch.toLocaleLowerCase());
     	if(!cors_headers.includes('content-type'))cors_headers.push('content-type');
         middleware_stack.push(async ctx=>{
@@ -64,7 +64,7 @@ function buildCORSRequest(middleware: Middleware, subdomain: string, route: stri
     }
     return new_middleware_stack;
 }
-export function RegisterRoute(subdomain:string, methods:HTTPVerbs[], route: string , stack_middleware:Middleware[], options?: RouterOptions, thisContext?:any) {
+export function RegisterRoute(subdomain:string, methods:HTTPVerbs[], route: string , stack_middleware:Middleware[], options?: RouterOptions, thisContext?:any, hide_register_message?:boolean) {
     let subdomain_stack:Map<HTTPVerbs, Array<Route>>;
     if (!configuration.server.subdomains.includes(subdomain)) {
         configuration.server.subdomains.push(subdomain);
@@ -89,7 +89,8 @@ export function RegisterRoute(subdomain:string, methods:HTTPVerbs[], route: stri
             
         }
     }
-    drouter(`${grey('[')}${yellow(methods.join(', '))}${grey(']')}\t${cyan(subdomain)}.${grey(host)}${cyan(route)}`);
+    if(!hide_register_message)
+        drouter(`${grey('[')}${yellow(methods.join(', '))}${grey(']')}\t${cyan(subdomain)}.${grey(host)}${cyan(route)}`);
 }
 
 export function RegisterHook(fn:()=>void) {
