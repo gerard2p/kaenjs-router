@@ -55,10 +55,13 @@ function buildCORSRequest(middleware: Middleware, subdomain: string, route: stri
 		let cors_headers = (access_control_allow.headers||[]).map(ch=>ch.toLocaleLowerCase());
     	if(!cors_headers.includes('content-type'))cors_headers.push('content-type');
         middleware_stack.push(async ctx=>{
-            ctx.headers[StandardResponseHeaders.AccessControlAllowHeaders] = cors_headers.join(',');
-            ctx.status = 200;
-            if(method.toLocaleLowerCase() === 'options')
+            let request_method = ctx.headers[StandardRequestHeaders.AccessControlRequestMethod].toLocaleLowerCase();
+            if(method.toLocaleLowerCase() === request_method) {
+                ctx.headers[StandardResponseHeaders.AccessControlAllowHeaders] = cors_headers.join(',');
+                ctx.status = 200;
                 ctx.finished = true;
+            }
+                
         });
         RegisterRoute(subdomain, [HTTPVerbs.options], route, middleware_stack);
     }
