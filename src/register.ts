@@ -9,8 +9,11 @@ import { getMetadata } from "./metadata";
 const drouter = debug('router');
 const {server:{host}} = configuration;
 function validateCORS(ctx:KaenContext, cors:string[]) {
-	let request = ctx.headers[StandardRequestHeaders.Origin] || '';
-	let match = cors.includes('*') || cors.some(origin=>request.includes(origin));
+    let request = ctx.headers[StandardRequestHeaders.Origin] || '';
+    if( !request && ctx.req.method.toLowerCase() === 'get') {
+        return true;
+    }
+    let match = cors.includes('*') || cors.some(origin=>request.includes(origin));
 	return match ? ctx.headers[StandardRequestHeaders.Origin] : undefined;
 
 }
@@ -74,7 +77,7 @@ export function RegisterRoute(subdomain:string, methods:HTTPVerbs[], route: stri
     }
     if ( !MiddlewareStack.has(subdomain) ) {
         MiddlewareStack.set(subdomain, new Map());
-    }
+	}
     subdomain_stack = MiddlewareStack.get(subdomain);
     let method_stack;
     for(const method of methods) {
